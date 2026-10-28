@@ -347,6 +347,7 @@ html[data-theme="dark"] .home-actions #ae2Button{background:#2a8c65!important}
 .prob-q{margin:0;font-weight:600;line-height:1.45}
 .prob-fb ol{margin:6px 0 0;padding-left:20px;font-weight:600}.prob-fb p{margin:4px 0}
 .prob-opt{font-size:1.05rem;line-height:1.4}
+.cmp{margin:4px 0 4px 6px;font-size:1.05rem;line-height:1.5}
 #probScreen .problem-card h3{font-size:clamp(1.05rem,2vw,1.3rem);font-weight:600}
 html[data-theme="dark"] .problem-feedback strong,html[data-theme="dark"] .problem-feedback b{color:var(--ink)}
 #printArea{display:none}
@@ -368,6 +369,7 @@ html[data-theme="dark"] .problem-feedback strong,html[data-theme="dark"] .proble
  #printArea.prob .pi{break-inside:avoid;page-break-inside:avoid;margin:0 0 40pt}
  #printArea.prob .po{margin:0 0 2pt 12pt}
  #printArea.prob .mtable{margin:2pt 0 4pt}
+ #printArea.prob .cmp{margin:0 0 2pt 12pt}
  #printArea.prob .mtable th,#printArea.prob .mtable td{padding:1pt 12pt;border-color:#000}
  #printArea.prob .print-foot{margin-top:6pt;font-size:10pt}
 }
@@ -1229,7 +1231,7 @@ function tBillete(){var B=pick([2000,5000,10000]),d=shuffle(DEN).slice(0,3).sort
  return{tipo:"Billete desconocido",stem:n+" tiene ahorrado "+money(tot)+" entre un billete y monedas. La siguiente tabla muestra las monedas que tiene:",table:"<table class=\"mtable\"><thead><tr><th>Moneda</th><th>Cantidad</th></tr></thead><tbody>"+rows+"</tbody></table>",question:"De acuerdo con la información anterior, ¿cuál es la denominación del billete que tiene "+n+"?",options:opt,
  steps:["Se calcula el dinero en monedas: "+d.map(function(v,i){return c[i]+" × "+money(v)}).join(" + ")+" = "+money(ct)+".","El billete vale lo que falta: "+money(tot)+" − "+money(ct)+" = "+money(B)+"."]}}
 /* 5. Vuelto posible */
-function fmt(counts){var parts=[];[[5000,"billete"],[2000,"billete"],[1000,"billete"],[500,"moneda"],[100,"moneda"],[50,"moneda"],[25,"moneda"],[10,"moneda"]].forEach(function(p){var k=counts[p[0]]||0;if(k)parts.push(k+" "+p[1]+(k>1?"s":"")+" de "+money(p[0]))});return joinList(parts)}
+function fmt(counts){var parts=[];[[10000,"billete"],[5000,"billete"],[2000,"billete"],[1000,"billete"],[500,"moneda"],[100,"moneda"],[50,"moneda"],[25,"moneda"],[10,"moneda"]].forEach(function(p){var k=counts[p[0]]||0;if(k)parts.push(k+" "+p[1]+(k>1?"s":"")+" de "+money(p[0]))});return joinList(parts)}
 function sumC(c){var s=0;Object.keys(c).forEach(function(k){s+=k*c[k]});return s}
 function tVuelto(){var bill=pick([5000,10000]),P,ch,counts,tries=0;do{ch=1000*(1+rnd(bill===5000?3:7))+pick([0,50,100,150,200,250,300,350,400,450,500,550,600,650,700,750]);if(bill===5000&&ch>3950)ch=2450;P=bill-ch;tries++}while((P<2000||ch%50!==0)&&tries<50);
  counts={};var rem=ch;[5000,2000,1000].forEach(function(b){while(rem>=b&&rnd(3)>0&&counts[b]!==3){counts[b]=(counts[b]||0)+1;rem-=b}});[500,100,50].forEach(function(cn){var k=Math.floor(rem/cn);if(cn===50)k=Math.floor(rem/cn);else k=Math.min(k,cn===500?2:5);counts[cn]=k;rem-=k*cn});if(rem>0){counts[50]=(counts[50]||0)+rem/50;rem=0}
@@ -1237,9 +1239,36 @@ function tVuelto(){var bill=pick([5000,10000]),P,ch,counts,tries=0;do{ch=1000*(1
  var item=pick(["medicamentos","útiles escolares","una mochila","frutas y verduras","un libro y un cuaderno","materiales para un proyecto"]),place=pick(["la farmacia","la librería","el supermercado","la feria del agricultor","la papelería"]),n=pick(NAMES);
  return{tipo:"Vuelto",stem:n+" fue "+(/^el /.test(place)?"al "+place.slice(3):"a "+place)+" y compró "+item+" por un total de "+money(P)+". Pagó con un billete de "+money(bill)+" y el cajero le entregó el vuelto en billetes y monedas. De acuerdo con la información anterior, ¿cuál de las siguientes opciones corresponde a un posible vuelto que "+n+" recibió?",options:opts(good,wrong),
  steps:["El vuelto es lo que sobra del pago: "+money(bill)+" − "+money(P)+" = "+money(ch)+".","Se suma cada opción y se busca la que vale "+money(ch)+".","La opción correcta es: "+good+"."]}}
-var GEN=[tTotal,tAhorro,tMisma,tBillete,tVuelto];
+
+/* 6 y 7. Comparar cantidades */
+var BILLS=[1000,2000,5000],COINS=[500,100,50,25,10];
+function randCombo(){var c={},kinds=2+rnd(3),pool=shuffle(BILLS.slice(0,3).concat(COINS)),hasBill=false;
+ for(var i=0;i<kinds;i++){var d=pool[i];c[d]=d>=1000?1+rnd(d===5000?2:4):1+rnd(d===500?4:d===100?8:6);}
+ if(!Object.keys(c).some(function(k){return +k>=1000}))c[pick(BILLS)]=1+rnd(2);return c}
+function cloneC(c){return JSON.parse(JSON.stringify(c))}
+function exchange(c){var opts=[[5000,[[2000,2],[1000,1]]],[2000,[[1000,2]]],[2000,[[1000,1],[500,2]]],[1000,[[500,2]]],[500,[[100,5]]],[500,[[100,4],[50,2]]],[100,[[50,2]]],[50,[[25,2]]],[1000,[[500,1],[100,5]]]];
+ var ok=opts.filter(function(o){return (c[o[0]]||0)>0});if(!ok.length)return c;var o=pick(ok),r=cloneC(c);r[o[0]]--;if(!r[o[0]])delete r[o[0]];o[1].forEach(function(p){r[p[0]]=(r[p[0]]||0)+p[1]});return r}
+function altCombo(c){var r=exchange(exchange(c));if(fmt(r)===fmt(c))r=exchange(c);return r}
+function tuneCombo(c,dir){var r=cloneC(c),d=pick([500,100,1000,50]);if(dir>0)r[d]=(r[d]||0)+1;else{var have=Object.keys(r).map(Number).filter(function(k){return k>=100&&r[k]>0});if(!have.length)r[d]=(r[d]||0)+1;else{var k=pick(have);r[k]--;if(!r[k])delete r[k]}}return r}
+function expr(c){return Object.keys(c).map(Number).sort(function(a,b){return b-a}).map(function(k){return c[k]===1?money(k):c[k]+" \u00d7 "+money(k)}).join(" + ")}
+function tComparar(){var A,B,out=pick([0,1,2]),tries=0;
+ do{A=randCombo();B=altCombo(A);if(out===1)B=tuneCombo(B,1);if(out===2)B=tuneCombo(B,-1);tries++}while((sumC(A)===sumC(B)&&out!==0||(out===0&&sumC(A)!==sumC(B))||fmt(A)===fmt(B)||sumC(A)>40000||sumC(B)>40000||sumC(A)<2500)&&tries<200);
+ if(Math.random()<.5){var t=A;A=B;B=t}
+ var V=pick([{a:"Grupo A",b:"Grupo B",A:"El Grupo A",B:"el Grupo B"},{a:"Alcancía roja",b:"Alcancía azul",A:"La alcancía roja",B:"la alcancía azul"},{a:"Caja 1",b:"Caja 2",A:"La Caja 1",B:"la Caja 2"},{a:"Bolsa A",b:"Bolsa B",A:"La Bolsa A",B:"la Bolsa B"}]),la=[V.a,V.b],ta=sumC(A),tb=sumC(B),cap=function(x){return x.charAt(0).toUpperCase()+x.slice(1)};
+ var o=[{t:V.A+" tiene más dinero que "+V.B+".",ok:ta>tb},{t:cap(V.B)+" tiene más dinero que "+V.A.charAt(0).toLowerCase()+V.A.slice(1)+".",ok:tb>ta},{t:"Ambos tienen exactamente la misma cantidad.",ok:ta===tb}];
+ return{tipo:"Comparar",stem:"Observe las siguientes cantidades:",table:"<p class=\"cmp\"><b>"+la[0]+":</b> "+fmt(A)+"</p><p class=\"cmp\"><b>"+la[1]+":</b> "+fmt(B)+"</p>",question:"\u00bfCu\u00e1l comparaci\u00f3n es la correcta?",options:o.map(function(x){return{t:x.t,ok:x.ok}}),
+ steps:[la[0]+": "+expr(A)+" = "+money(ta)+".",la[1]+": "+expr(B)+" = "+money(tb)+".",ta===tb?"Las dos cantidades son iguales: "+money(ta)+".":(ta>tb?la[0]:la[1])+" tiene m\u00e1s: "+money(Math.max(ta,tb))+" es mayor que "+money(Math.min(ta,tb))+"."]}}
+function tTres(){var P=pick([["Mariana","Andr\u00e9s","Laura"],["Daniel","Sof\u00eda","Mateo"],["Camila","Jorge","Elena"],["Kevin","Paola","Diego"],["Isabel","Esteban","Valeria"]]),alc=Math.random()<.45,names=alc?["la alcanc\u00eda roja","la alcanc\u00eda azul","la alcanc\u00eda verde"]:P,C,T,tries=0,more=Math.random()<.5;
+ do{C=[randCombo(),randCombo(),randCombo()];T=C.map(sumC);var s=T.slice().sort(function(a,b){return a-b});tries++}while(((s[2]-s[1]<300)||(s[1]-s[0]<300)||s[2]>40000||s[0]<1500)&&tries<400);
+ var target=more?T.indexOf(Math.max.apply(null,T)):T.indexOf(Math.min.apply(null,T));
+ var up=function(x){return x.charAt(0).toUpperCase()+x.slice(1)};
+ var stem=alc?names.map(function(n,i){return up(n)+" tiene "+fmt(C[i])+"."}).join(" "):P[0]+" tiene ahorrado "+fmt(C[0])+". "+P[1]+" tiene "+fmt(C[1])+". "+P[2]+" tiene "+fmt(C[2])+".";
+ var qq=alc?"\u00bfCu\u00e1l alcanc\u00eda tiene "+(more?"m\u00e1s":"menos")+" dinero?":"\u00bfQui\u00e9n tiene "+(more?"m\u00e1s":"menos")+" dinero?";
+ var opt=names.map(function(n,i){return{t:up(n),ok:i===target}});
+ return{tipo:"Tres personas",stem:stem,question:qq,options:shuffle(opt),steps:names.map(function(n,i){return up(n)+": "+expr(C[i])+" = "+money(T[i])+"."}).concat([up(names[target])+" tiene "+(more?"m\u00e1s":"menos")+" dinero: "+money(T[target])+"."])}}
+var GEN=[tTotal,tAhorro,tMisma,tBillete,tVuelto,tComparar,tTres];
 var items=[],score=0,done=0,lastKinds=[];
-function make(){var order=shuffle([0,1,2,3,4]);var extra=pick([0,2,4,2]);order.push(extra);items=order.map(function(i){var it=GEN[i]();it.k=i;return it})}
+function make(){var rest=shuffle([0,1,2,3,4]).slice(0,4);var order=shuffle(rest.concat([5,6]));items=order.map(function(i){var it=GEN[i]();it.k=i;return it})}
 var EMO=["🎉","🌟","🏆","🥇","🎊","⭐"];
 function boom(card){var r=card.getBoundingClientRect(),cv=document.createElement("canvas");cv.width=innerWidth;cv.height=innerHeight;cv.style.cssText="position:fixed;inset:0;pointer-events:none;z-index:60";document.body.appendChild(cv);var g=cv.getContext("2d"),ps=[],cols=["#facc15","#f97316","#22c55e","#3b82f6","#a855f7","#ef4444"];
  for(var b=0;b<4;b++){var x=r.left+r.width*(.2+.2*b),y=Math.max(80,Math.min(innerHeight-80,r.top+r.height*.3));for(var i=0;i<34;i++){var a=Math.PI*2*i/34,v=2+Math.random()*3;ps.push({x:x,y:y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,l:60+Math.random()*25,c:pick(cols)})}}
@@ -1251,7 +1280,7 @@ function render(){var box=q("#probList");box.replaceChildren();score=0;done=0;q(
 function answer(c,it,j){if(c.dataset.done)return;c.dataset.done="1";done++;var btns=c.querySelectorAll(".problem-option"),fb=c.querySelector(".prob-fb"),ok=it.options[j].ok,k=it.options.findIndex(function(o){return o.ok});btns.forEach(function(b){b.disabled=true});
  btns[j].classList.add(ok?"correct":"incorrect");if(!ok)btns[k].classList.add("correct");
  if(ok){score++;fb.className="problem-feedback prob-fb good";fb.innerHTML="<strong>"+pick(EMO)+" ¡Muy bien! Respuesta correcta.</strong>";boom(c)}
- else{fb.className="problem-feedback prob-fb try";fb.innerHTML="<div><strong>✖ Respuesta incorrecta.</strong><p>La respuesta correcta es <b>"+"ABC"[k]+") "+it.options[k].t+"</b>.</p><ol>"+it.steps.map(function(s){return"<li>"+s+"</li>"}).join("")+"</ol></div>"}
+ else{fb.className="problem-feedback prob-fb try";fb.innerHTML="<div><strong>✖ Respuesta incorrecta.</strong><p>La respuesta correcta es <b>"+"ABC"[k]+") "+it.options[k].t.replace(/\.$/,"")+"</b>.</p><ol>"+it.steps.map(function(s){return"<li>"+s+"</li>"}).join("")+"</ol></div>"}
  q("#probScore").textContent="Aciertos: "+score+" de "+items.length+(done===items.length?" · ¡Práctica terminada!":"")}
 function printAll(){var area=document.getElementById("printArea");if(!area){area=document.createElement("section");area.id="printArea";document.body.append(area)}
  area.className="prob";area.innerHTML="<p class=\"print-head\">Problemas · Monedas y billetes · Tercer grado</p><p class=\"print-meta\">Nombre: ______________________________ &nbsp; Fecha: ____________</p><div class=\"print-cols\">"+items.map(function(it,i){return"<div class=\"pi\"><p><b>"+(i+1)+") </b>"+it.stem+"</p>"+(it.table||"")+(it.question?"<p>"+it.question+"</p>":"")+it.options.map(function(o,j){return"<div class=\"po\"><b>"+"ABC"[j]+")</b> "+o.t+"</div>"}).join("")+"</div>"}).join("")+"</div>";
