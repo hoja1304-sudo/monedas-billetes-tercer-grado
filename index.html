@@ -1334,18 +1334,21 @@ function mkVuelto(){
    {rule:{only:[2000,1000,500,100],max:{500:2}},cond:"usando billetes de "+money(2000)+" y "+money(1000)+" y monedas de "+money(500)+" y "+money(100)+". Como máximo puedes usar dos monedas de "+money(500)},
    {rule:{minLen:(minPieces(ch)||[]).length},cond:"con la menor cantidad posible de billetes y monedas"},
    {rule:{forbid:[500],max:{2000:1}},cond:"sin usar monedas de "+money(500)+". Como máximo puedes usar un billete de "+money(2000)}];
-  var v=pick(vs),sol=v.rule.minLen?minPieces(ch):solve(ch,v.rule,14);if(!sol||sol.length>14||sol.length<2)continue;
+  vs=vs.filter(function(x,i){return ch>=[1000,2000,0,2000][i]});var v=pick(vs),sol=v.rule.minLen?minPieces(ch):solve(ch,v.rule,14);if(!sol||sol.length>14||sol.length<2)continue;
   var name=pick(NAMES);
   return{question:name+" compró "+a[0]+" en "+money(a[1])+" y "+b[0]+" en "+money(b[1])+". Si pagó con un billete de "+money(bill)+", coloca el vuelto que se le debe dar a "+name+" "+v.cond+".",given:[],target:ch,rule:v.rule,cond:v.cond,solution:sol,
    explain:money(a[1])+" + "+money(b[1])+" = "+money(total)+". Luego, "+money(bill)+" − "+money(total)+" = "+money(ch)+" de vuelto."}}}
 function mkPagar(){
- for(var t=0;t<300;t++){var T=(46+rnd(60))*50,name=pick(NAMES),it=pick(ITEMS)[0],place=pick(PLACES);if(T<3000)continue;
-  var vs=[
-   {rule:{only:[2000,1000,500,100,50],exact:{2000:1},max:{500:3}},cond:"billetes de "+money(2000)+" y "+money(1000)+" y monedas de "+money(500)+", "+money(100)+" y "+money(50)+". Debes usar exactamente un billete de "+money(2000)+" y, como máximo, puedes usar tres monedas de "+money(500)},
-   {rule:{only:[1000,500,100],max:{500:2,100:5}},cond:"billetes de "+money(1000)+" y monedas de "+money(500)+" y "+money(100)+". Como máximo puedes usar dos monedas de "+money(500)+" y cinco de "+money(100)},
-   {rule:{only:[5000,2000,1000,50,25,10],forbid:[],max:{5000:1,2000:1}},cond:"billetes de "+money(5000)+", "+money(2000)+" y "+money(1000)+" y monedas de "+money(50)+", "+money(25)+" y "+money(10)+". Como máximo puedes usar un billete de "+money(5000)+" y uno de "+money(2000)}];
-  var v=pick(vs),sol=solve(T,v.rule,13);if(!sol||sol.length<3)continue;
-  return{question:name+" compró "+it+" "+place+" y debe pagar "+money(T)+". Coloca una forma de pagar con "+v.cond+".",given:[],target:T,rule:v.rule,cond:v.cond,solution:sol,explain:"Una forma correcta de pagar "+money(T)+" es "+sol.map(money).join(" + ")+"."}}}
+ var BW={1000:"mil",2000:"dos mil",5000:"cinco mil"},CW={100:"cien",50:"cincuenta",25:"veinticinco",10:"diez"};
+ for(var t=0;t<400;t++){
+  var spec=pick([[1000,2],[2000,1],[2000,2],[5000,1],[1000,1]]),B=spec[0],n=spec[1],base=B*n,rest=(5+rnd(15))*50,T=base+rest,F=pick([25,50,10,100]),name=pick(NAMES),it=pick(ITEMS)[0],place=pick(PLACES);
+  if(rest<250||rest>950)continue;
+  var coins=[100,50,25,10].filter(function(c){return c!==F}),rule={only:[B].concat(coins),exact:{},forbid:[F]};rule.exact[B]=n;
+  var sol=solve(T,rule,14);if(!sol||sol.length<4)continue;
+  var billTxt=n===1?"un billete de "+BW[B]+" colones":"dos billetes de "+BW[B]+" colones",billShort=n===1?"el billete":"los billetes";
+  var cond="con "+(n===1?"un billete":"dos billetes")+" de "+money(B)+", monedas de menos de "+money(500)+" y ninguna moneda de "+money(F);
+  return{question:name+" compró "+it+" "+place+" y debe pagar "+money(T)+". "+name+" tenía solo "+billTxt+" y pagó el resto con monedas cuya denominación era inferior a quinientos colones. Coloca una posible combinación de monedas, junto con "+billShort+" de "+BW[B]+" colones que utilizó, para cancelar en forma exacta el dinero de la compra, sabiendo que no utilizó ninguna moneda de "+CW[F]+" colones.",given:[],target:T,rule:rule,cond:cond,solution:sol,
+   explain:money(T)+" − "+(n===1?money(B):n+" × "+money(B)+" = "+money(base))+" = "+money(rest)+" se paga con monedas. Una forma correcta es "+sol.map(money).join(" + ")+"."}}}
 function mkAhorro(){
  for(var t=0;t<300;t++){var g=pick([[5000,2000],[2000,1000,1000],[5000,1000],[10000,2000],[5000,2000,1000]]),have=sum(g),miss=(10+rnd(66))*50,price=have+miss,name=pick(NAMES),it=pick(ITEMS)[0];if(miss<1000||miss>3500)continue;
   var vs=[
