@@ -1093,7 +1093,7 @@ var REL_OPTIONS=[
  {coin:5000,rule:{forbid:[],exact:{2000:1},only:[2000,1000,500],max:{500:2}},text:"por un billete de \u20A12\u00a0000 y el resto en billetes de \u20A11\u00a0000 y monedas de \u20A1500. Usa como máximo dos monedas de \u20A1500.",sol:[2000,1000,1000,500,500]},
  {coin:10000,rule:{forbid:[],exact:{5000:1,2000:1,1000:1},only:[5000,2000,1000,500,100],max:{500:3}},text:"por un billete de \u20A15\u00a0000, uno de \u20A12\u00a0000, uno de \u20A11\u00a0000 y el resto en monedas de \u20A1500 y de \u20A1100. Usa como máximo tres monedas de \u20A1500.",sol:[5000,2000,1000,500,500,500,100,100,100,100,100]},
  {coin:10000,rule:{forbid:[],exact:{5000:1,2000:2},only:[5000,2000,500,100,50],max:{500:1,100:4}},text:"por un billete de \u20A15\u00a0000, dos de \u20A12\u00a0000 y el resto en monedas de \u20A1500, \u20A1100 y \u20A150. Usa como máximo una moneda de \u20A1500 y como máximo cuatro de \u20A1100.",sol:[5000,2000,2000,500,100,100,100,100,50,50]},
- {coin:10000,rule:{forbid:[],exact:{5000:1},only:[5000,2000,1000,500,100],max:{500:2,100:5}},text:"por un billete de \u20A15\u00a0000 y el resto en billetes de \u20A12\u00a0000 y de \u20A11\u00a0000 y monedas de \u20A1500 y de \u20A1100. Usa como máximo dos monedas de \u20A1500 y como máximo cinco de \u20A1100.",sol:[5000,2000,2000,1000]},
+ {coin:10000,rule:{forbid:[],exact:{},only:[5000,2000,1000,500,100,50,25,10],need:[5000,2000,1000,500,100,50,25,10],max:{5000:1}},text:"por billetes y monedas. Debes usar todas las denominaciones de los billetes (\u20A15\u00a0000, \u20A12\u00a0000 y \u20A11\u00a0000), por lo menos uno de cada denominación, pero el billete de \u20A15\u00a0000 lo puedes usar como máximo una vez. Además, debes utilizar todas las denominaciones de las monedas, por lo menos una de cada denominación.",sol:[5000,2000,1000,1000,500,100,50,50,50,50,50,50,25,25,10,10,10,10,10]},
  {coin:1000,rule:{forbid:[],exact:{},only:[500]},text:"por solo monedas de \u20A1500."},
  {coin:1000,rule:{forbid:[],exact:{},only:[100]},text:"por solo monedas de \u20A1100."},
  {coin:1000,rule:{forbid:[],exact:{500:1},only:[500,100]},text:"por una moneda de \u20A1500 y el resto de \u20A1100."},
@@ -1285,6 +1285,7 @@ function ruleOk(r,vals){
  if(r.forbid&&r.forbid.some(function(x){return vals.indexOf(x)>=0}))return false;
  if(r.only&&vals.some(function(v){return r.only.indexOf(v)<0}))return false;
  if(r.exact&&Object.keys(r.exact).some(function(k){return count(vals,+k)!==r.exact[k]}))return false;
+ if(r.need&&r.need.some(function(x){return vals.indexOf(x)<0}))return false;
  if(r.max&&Object.keys(r.max).some(function(k){return count(vals,+k)>r.max[k]}))return false;
  if(r.minLen&&vals.length!==r.minLen)return false;
  return true}
@@ -1326,13 +1327,19 @@ function mkAhorro(){
   var h=g.map(function(x){return money(x)}).join(", ").replace(/, ([^,]*)$/," y $1");
   return{question:name+" quiere comprar "+it+" que cuesta "+money(price)+". Ya tiene "+h+" (en la imagen). Coloca lo que le falta "+"con "+v.cond+".",given:g,target:miss,rule:v.rule,cond:v.cond,solution:sol,explain:money(price)+" − "+money(have)+" = "+money(miss)+" es lo que le falta."}}}
 function mkCambio(){
- for(var t=0;t<300;t++){var B=pick([5000,10000]),vs=B===5000?[
-   {rule:{only:[2000,1000,500,100],exact:{2000:2},max:{500:2}},cond:"billetes de "+money(2000)+" y "+money(1000)+" y monedas de "+money(500)+" y "+money(100)+". Debes usar exactamente dos billetes de "+money(2000)+" y, como máximo, puedes usar dos monedas de "+money(500)},
-   {rule:{only:[1000,500,100],exact:{1000:3},max:{500:2}},cond:"billetes de "+money(1000)+" y monedas de "+money(500)+" y "+money(100)+". Debes usar exactamente tres billetes de "+money(1000)+" y, como máximo, puedes usar dos monedas de "+money(500)}]:[
-   {rule:{only:[5000,2000,1000,500],exact:{5000:1},max:{2000:2,500:2}},cond:"billetes de "+money(5000)+", "+money(2000)+" y "+money(1000)+" y monedas de "+money(500)+". Debes usar exactamente un billete de "+money(5000)+" y, como máximo, puedes usar dos billetes de "+money(2000)+" y dos monedas de "+money(500)},
-   {rule:{only:[5000,2000,1000,500,100],exact:{2000:2},max:{5000:1,500:3}},cond:"billetes de "+money(5000)+", "+money(2000)+" y "+money(1000)+" y monedas de "+money(500)+" y "+money(100)+". Debes usar exactamente dos billetes de "+money(2000)+" y, como máximo, puedes usar un billete de "+money(5000)+" y tres monedas de "+money(500)}];
-  var v=pick(vs),sol=solve(B,v.rule,15);if(!sol)continue;var name=pick(NAMES);
-  return{question:name+" va al banco a cambiar el billete de "+money(B)+" (en la imagen). Coloca lo que recibió con "+v.cond+".",given:[B],target:B,rule:v.rule,cond:v.cond,solution:sol,explain:"Una forma correcta es "+sol.map(money).join(" + ")+" = "+money(B)+"."}}}
+ var PAIRS=[["Valeria","Andrés","su amigo"],["Mateo","Camila","su amiga"],["Sofía","Daniel","su amigo"],["Jorge","Elena","su amiga"],["Isabel","Diego","su amigo"],["Kevin","Mariana","su amiga"]];
+ var VARS=[
+  {bill:5000,exact:{500:1,100:3},need:[2000,1000],sol:[2000,1000,1000,500,100,100,100,50,50,50,50]},
+  {bill:10000,exact:{500:1,100:2},need:[5000,2000,1000],sol:[5000,2000,1000,1000,500,100,100,50,50,50,50,50,50]},
+  {bill:10000,exact:{500:1,100:4},need:[5000,2000],sol:[5000,2000,2000,500,100,100,100,100,50,50]},
+  {bill:5000,exact:{500:1,100:2},need:[2000,1000],sol:[2000,1000,1000,500,100,100,50,50,50,50,50,50]}];
+ var v=pick(VARS),pr=pick(PAIRS),a=pr[0],b=pr[1],rel=pr[2];
+ var parts=Object.keys(v.exact).sort(function(x,y){return y-x}).map(function(k){return cntWord(v.exact[k],+k)});
+ var rule={only:[5000,2000,1000,500,100,50,25,10],exact:v.exact,need:v.need,max:{5000:v.bill===10000?1:0}};
+ var given=Object.keys(v.exact).map(function(k){return k*v.exact[k]}).reduce(function(x,y){return x+y},0);
+ var cond="exactamente "+parts.join(" y ")+" y, para el resto, billetes de diferente denominación y monedas";
+ return{question:a+" le pide a "+rel+" "+b+" que le cambie un billete de "+money(v.bill)+" en billetes y monedas. "+b+" le entrega "+parts.join(" y ")+"; para el resto usó billetes de diferente denominación y monedas. Coloca una posible combinación de monedas y billetes que "+b+" le entregó a "+a+".",given:[v.bill],target:v.bill,rule:rule,cond:cond,solution:v.sol,
+  explain:"Una forma correcta es "+v.sol.map(money).join(" + ")+" = "+money(v.bill)+"."}}
 var MAKERS=[mkVuelto,mkPagar,mkAhorro,mkCambio],queue=[];
 /* ---- pantalla ---- */
 var screen=q("#lvScreen"),board=null,P=null,solved=false;
